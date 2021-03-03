@@ -13,3 +13,7 @@ Phone number: 802-310-4177
 Name: Samuel Agate 
 Email: sagate@bu.edu
 Phone Number: 510-559-0234
+
+Name: Devin Hubbard
+Email: dhubbard@bu.edu
+Phone Number: 978-460-2546
