@@ -18,17 +18,11 @@ Name: Devin Hubbard
 Email: dhubbard@bu.edu
 Phone Number: 978-460-2546
 
+
+Updating Data:
 ```
 MAILTO=malmborg@bu.edu
-15 18 * * * /home/scratch/dietze_lab/NOMADS/get_sref.sh
-```
+15 18 * * * /EcoForecast/PhenoPhriends/Milestone4.Rmd
+
 
 ```
-  subset <- MODISTools::mt_subset(product = "MOD13Q1",
-                                band = "250m_16_days_EVI",
-                                lat=46.0827,
-                                lon=-89.9792,
-                                km_lr = 1,
-                                km_ab = 1,
-                                site_name = "WillowCreek")
- * * * * 2 /home/scratch/hubbard_lab/MODIS/MOD13Q1   
