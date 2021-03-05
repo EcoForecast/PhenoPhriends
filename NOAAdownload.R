@@ -11,5 +11,5 @@ download_noaa_files_s3 <- function(siteID, date, cycle, local_directory){
 }
 siteID= c('BART','CLBJ','DELA','GRSM','HARV','SCBI','STEI','UKFS')
 for(i in siteID){
-  download_noaa_files_s3(siteID = i, date = (Sys.Date()), cycle = "00", local_directory <- "Downloads/")
+  download_noaa_files_s3(siteID = i, date = (Sys.Date()-1), cycle = "00", local_directory <- "Downloads/")
 }
