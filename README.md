@@ -17,12 +17,3 @@ Phone Number: 510-559-0234
 Name: Devin Hubbard
 Email: dhubbard@bu.edu
 Phone Number: 978-460-2546
-
-
-Updating Data:
-```
-MAILTO=malmborg@bu.edu
-15 18 * * * /EcoForecast/PhenoPhriends/Milestone4.Rmd
-
-
-```
