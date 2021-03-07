@@ -24,6 +24,9 @@ source("extractNOAA.R")
 #Plot time series for gcc_90 at each site
 source("TS_Plots.R")
 
+#NOAA temperature plots across all sites 
+source("NOAAplots.R")
+
 
 ```
 
