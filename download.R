@@ -1,4 +1,4 @@
-##' Download Phenocam data
+##'  Download Phenocam data
 ##'
 
 URL="https://data.ecoforecast.org/targets/phenology/phenology-targets.csv.gz"

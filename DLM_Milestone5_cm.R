@@ -29,7 +29,7 @@ siteID= c('BART','CLBJ')
  
 l.siteID = length(siteID)
 
-#i know it doesnt make sense but if I don't have this line here, it doesn't run
+#i know it doesnt make sense but if I don't have this line here, it doesn't run 
 i=1
 
 for (i in 1:l.siteID){

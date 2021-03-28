@@ -1,4 +1,4 @@
-cat<-"
+cat <-"
 model{
 
 ### Loop over years:
