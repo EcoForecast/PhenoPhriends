@@ -6,7 +6,7 @@ for(i in 1:years){
 
   ### Data Model: GCC
   for(t in 1:180){
-    y[i,t] ~ dnorm(x[i,t], tau_gcc)
+    y[i,t] ~ dnorm(x[i,t]), tau_gcc)
   }
 
   ###Process Model
@@ -29,25 +29,29 @@ siteID= c('BART','CLBJ')
  
 l.siteID = length(siteID)
 
+#i know it doesnt make sense but if I don't have this line here, it doesn't run
+i=1
+
 for (i in 1:l.siteID){
   
 dev = dat[ which(dat$siteID== as.character(siteID[i])), ]
 time = as.Date(dev$time)
-year=(lubridate::year(dev$time))
+year= (lubridate::year(dev$time))
 years = unique(year)
 y=matrix(NA,length(years),366) #rows is years, columns is doy
 for(i in 1:nrow(dev)){
   y[as.numeric(as.factor(year))[i],dev$doy[i]]=dev$gcc_90[i]
 }
 
-
 y = y[-(1:2),] ##for this site, there's no data in year 1 or 2
 years = years[-(1:2)]
 
+## informative prior on obs error
 yref = na.omit(as.vector(y[,355:366])) ## winter period of no change
 a_gcc=length(yref)/5
 r_gcc=a_gcc*var(yref)
 
+## organize data and set priors & constants
 data <- list(y=y,years=nrow(y),
              mu_ic=quantile(y,0.05,na.rm = TRUE),tau_ic=100,
              a_gcc=a_gcc,r_gcc=r_gcc,
@@ -55,6 +59,7 @@ data <- list(y=y,years=nrow(y),
              gmin = min(y,na.rm=TRUE),
              gmax = max(y,na.rm=TRUE))
 
+#defining initial state of model parameters
 nchain <- 3
 init <- list()
 for(i in 1:nchain){
@@ -62,6 +67,7 @@ for(i in 1:nchain){
   init[[i]] <- list (x=matrix(apply(y[,1:180],2,mean,na.rm=TRUE),
                               nrow=nrow(y),ncol = 180,byrow = TRUE))
 }
+
 ## compile
 j.pheno.model.test <- rjags::jags.model (file = textConnection(cat),
                                          data = data,
@@ -70,7 +76,7 @@ j.pheno.model.test <- rjags::jags.model (file = textConnection(cat),
 ## check burn-in
 j.pheno.out <- rjags::coda.samples (model = j.pheno.model.test,
                                     variable.names = c("tau_add","tau_gcc"),
-                                    n.iter = 1000)    
+                                    n.iter = 5000)    
 plot(j.pheno.out)
 coda::gelman.diag(j.pheno.out)
 coda::effectiveSize(j.pheno.out)
@@ -113,49 +119,3 @@ for(i in seq_len(nrow(y))){
 }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-GCC is the constraint? 
-
-The data model we have for temp is wrong
-
-add prior for beta
-
-remove priors for day and year random effects. We dont have those
-
-
-
-
-
-
-
-
-
-
-
-
