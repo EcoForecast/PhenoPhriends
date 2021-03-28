@@ -6,7 +6,7 @@ for(i in 1:years){
 
   ### Data Model: GCC
   for(t in 1:180){
-    y[i,t] ~ dnorm(x[i,t]), tau_gcc)
+    y[i,t] ~ dnorm(x[i,t], tau_gcc)
   }
 
   ###Process Model
@@ -25,7 +25,8 @@ for(i in 1:years){
 }"
 
 
-siteID= c('BART','CLBJ')
+#siteID= c('BART','CLBJ')
+siteID= c('BART','CLBJ','DELA','GRSM','HARV','SCBI','STEI','UKFS')
  
 l.siteID = length(siteID)
 
