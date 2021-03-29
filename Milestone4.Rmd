@@ -27,6 +27,10 @@ source("TS_Plots.R")
 #NOAA temperature plots across all sites 
 source("NOAAplots.R")
 
+#daymet 
+source("daymet.R")
 
+#JAGS model
+source("DLM_Milestone5_cm.R")
 ```
 

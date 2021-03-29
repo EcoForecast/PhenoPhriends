@@ -1,4 +1,4 @@
-cat<-"
+cat <-"
 model{
 
 ### Loop over years:
@@ -25,25 +25,18 @@ for(i in 1:years){
 }"
 
 
-#siteID= c('BART','CLBJ')
-siteID= c('BART','CLBJ','DELA','GRSM','HARV','SCBI','STEI','UKFS')
- 
-l.siteID = length(siteID)
+STEI = dat[dat$siteID=="STEI",]
+doy = lubridate::yday(STEI$time)
+STEI = cbind(STEI,doy)
+time <- as.Date(STEI$time)
 
-#i know it doesnt make sense but if I don't have this line here, it doesn't run 
-i=1
-
-for (i in 1:l.siteID){
-  
-dev = dat[ which(dat$siteID== as.character(siteID[i])), ]
-time = as.Date(dev$time)
-year= (lubridate::year(dev$time))
+## organize GCC data by year
+year=(lubridate::year(STEI$time))
 years = unique(year)
 y=matrix(NA,length(years),366) #rows is years, columns is doy
-for(i in 1:nrow(dev)){
-  y[as.numeric(as.factor(year))[i],dev$doy[i]]=dev$gcc_90[i]
+for(i in 1:nrow(STEI)){
+  y[as.numeric(as.factor(year))[i],STEI$doy[i]]=STEI$gcc_90[i]
 }
-
 y = y[-(1:2),] ##for this site, there's no data in year 1 or 2
 years = years[-(1:2)]
 
@@ -71,13 +64,13 @@ for(i in 1:nchain){
 
 ## compile
 j.pheno.model.test <- rjags::jags.model (file = textConnection(cat),
-                                         data = data,
-                                         inits = init,
-                                         n.chains = 3)
+                                  data = data,
+                                  inits = init,
+                                  n.chains = 3)
 ## check burn-in
 j.pheno.out <- rjags::coda.samples (model = j.pheno.model.test,
-                                    variable.names = c("tau_add","tau_gcc"),
-                                    n.iter = 5000)    
+                             variable.names = c("tau_add","tau_gcc"),
+                             n.iter = 5000)    
 plot(j.pheno.out)
 coda::gelman.diag(j.pheno.out)
 coda::effectiveSize(j.pheno.out)
@@ -117,6 +110,4 @@ for(i in seq_len(nrow(y))){
   plot(doy,ci[2,sel],type='n',ylim=range(ci[,sel],na.rm=TRUE),ylab="gcc",main=years[i])
   ecoforecastR::ciEnvelope(doy,ci[1,sel],ci[3,sel],col="lightBlue")
   points(doy,data$y[i,doy],pch="+",cex=0.5)
-}
-
 }
