@@ -34,10 +34,16 @@ for(i in 1:8){
 doy <- dm[[1]]$data$yday
 
 #grabbing max temp from each site's daymet data in dm list
-maxtemp<-matrix(NA,nrow=length(doy),ncol=8)
+maxtemp<-list()
 for (i in 1:8){
-  maxtemp[,i]<-dm[[i]]$data$tmax..deg.c.
+  metyear= dm[[i]]$data$year
+  metyears=unique(metyear)
+  maxtemp[[i]]<-matrix(NA,length(metyears),366)
+  #maxtemp[,i]<-dm[[i]]$data$tmax..deg.c.
+  for(j in 1:nrow(dm[[i]]$data)){
+    maxtemp[[i]][as.numeric(as.factor(metyear))[j],dm[[i]]$data$yday[j]]=dm[[i]]$data$tmax..deg.c.[j]
+  }
 }
 
 #add the doy to be the first column, each of the next columns 2-9 are each site (in alphabetical order)
-maxtemp<-cbind(doy,maxtemp)
+#maxtemp<-cbind(doy,maxtemp)
