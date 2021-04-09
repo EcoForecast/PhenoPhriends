@@ -102,21 +102,66 @@ time=1:NT
 
 #---------------trying the deterministic---------
 #doing for BART--this does not work!
-Ph.det.BART<-phenoforecast(IC=IC,
-                      tempcast=temp.max.mean,   # this line does not work
+PhF.BART<-phenoforecast(IC=IC,
+                      tempcast=temp.max.mean,
                       beta=param.mean["betaTemp"],
                       Q=0,
                       n=Nmc,
                       gmin=gmin,
                       gmax=gmax)
 
-#next: time series plot deterministic, then add uncertainties 1 by 1
+
+
 plot(0,0, xlim=c(0,NT),ylim=range(Ph.det.BART))
 for (p in 1:Nmc){
-  points(Ph.det.BART[p,],type="l",col=p)
+  points(PhF.BART[p,],type="l",col=p)
 }
+
+#this will make confidence intervals
+time.f<-1:NT
+ci <- apply(as.matrix(PhF.BART.IP),2,quantile,c(0.025,0.5,0.975))
+plot(0,0,xlim=c(0,NT),ylim=range(PhF.BART))
+ecoforecastR::ciEnvelope(time.f,ci[1,],ci[3,],col=col.alpha("lightBlue",0.6))
 
 #-----------------
 #initial condition ensemble created from last gcc observation point & sd
 IC.ens<-rnorm(Nmc,tail(BART$gcc_90,1),tail(BART$gcc_sd,1))
+PhF.BART.IC<-phenoforecast(IC=IC.ens,
+                        tempcast=temp.max.mean,
+                        beta=param.mean["betaTemp"],
+                        Q=0,
+                        n=Nmc,
+                        gmin=gmin,
+                        gmax=gmax)
+
+time.f<-1:NT
+ci <- apply(as.matrix(PhF.BART.IC),2,quantile,c(0.025,0.5,0.975))
+plot(0,0,xlim=c(0,NT),ylim=range(PhF.BART))
+ecoforecastR::ciEnvelope(time.f,ci[1,],ci[3,],col=col.alpha("lightBlue",0.6))
+
+#-----------------
+#parameter uncertainty for beta
+prow <- sample.int(nrow(params),Nmc,replace=TRUE)
+PhF.BART.IP<-phenoforecast(IC=IC.ens,
+                           tempcast=temp.max.mean,
+                           beta=params[prow,"betaTemp"],
+                           Q=0,
+                           n=Nmc,
+                           gmin=gmin,
+                           gmax=gmax)
+
+ci <- apply(as.matrix(PhF.BART.IP),2,quantile,c(0.025,0.5,0.975))
+plot(0,0,xlim=c(0,NT),ylim=range(PhF.BART))
+ecoforecastR::ciEnvelope(time.f,ci[1,],ci[3,],col=col.alpha("lightBlue",0.6))
+
+
+#---------------
+drow<-sample.int(nrow(df1.BART),Nmc,replace=TRUE)
+PhF.BART.IPT<-phenoforecast(IC=IC.ens,
+                           tempcast=df1.BART[drow,],  #this is not working
+                           beta=params[prow,"betaTemp"],
+                           Q=0,
+                           n=Nmc,
+                           gmin=gmin,
+                           gmax=gmax)
 
