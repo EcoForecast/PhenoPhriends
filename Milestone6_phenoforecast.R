@@ -10,6 +10,7 @@ library(ecoforecastR)
 #Nmc=# of mcmc runs
 #gmin=default value min gcc
 #gmax=default value max gcc
+##STILL NEED TO SAVE DATA VALUES EACH TIME TO GET GMIN AND GMAX FOR EACH SITE
 
 #the timestep is 16 days:
 NT=16
@@ -74,8 +75,15 @@ findmaxtemp<-function(x){
 
 #temp.max <- matrix(findmaxtemp(df1.BART[1,-1]),ncol=1)  #drops the 1st observation (analysis)
 
-temp.max <- apply(df1.c$BART[,-1],1,findmaxtemp) #days vs ensemble members
-temp.max.mean<-matrix(apply(temp.max,1,mean),ncol=1)
+#temp.max <- apply(df1.c$BART[,-1],1,findmaxtemp) #days vs ensemble members
+#temp.max.mean<-matrix(apply(temp.max,1,mean),ncol=1)
+
+#FINDS MAX TEMP ENSEMBLE MEAN FOR EACH SITE:
+temp.max.mean<-list()
+for (s in siteID){
+  temp.max<-apply(df1.c[[s]][,-1],1,findmaxtemp)
+  temp.max.mean[[s]]<-matrix(apply(temp.max,1,mean),ncol=1)
+}
 
 ## parameters
 params <- as.matrix(j.pheno.out)
@@ -93,7 +101,7 @@ time=1:NT
 
 #---------------trying the deterministic---------
 PhF.BART<-phenoforecast(IC=IC,
-                      tempcast=temp.max.mean,
+                      tempcast=temp.max.mean$BART,
                       beta=param.mean["betaTemp"],
                       Q=0,
                       n=Nmc,
