@@ -1,3 +1,4 @@
+library(ecoforecastR)
 
 #making a forecast and having fun
 
@@ -9,6 +10,7 @@
 #Nmc=# of mcmc runs
 #gmin=default value min gcc
 #gmax=default value max gcc
+##STILL NEED TO SAVE DATA VALUES EACH TIME TO GET GMIN AND GMAX FOR EACH SITE
 
 #the timestep is 16 days:
 NT=16
@@ -17,6 +19,7 @@ Nmc=10
 
 
 #we set gcc min and max values, they are different for each run/site and they are here:
+load(file=paste0(as.character(siteID[i]),".data.Rdata"))
 gmin=data$gmin
 gmax=data$gmax
 
@@ -42,18 +45,20 @@ k.to.c<-function(k){
   return(k-273.15)
 }
 
-#noaa temp data in celsius
-df1.c<-apply(df1,2,k.to.c)
 
-#now we need to group them by site
-df1.BART<-df1.c[1:31,]
-df1.CLBJ<-df1.c[32:62,]
-df1.DELA<-df1.c[63:93,]
-df1.GRSM<-df1.c[94:124,]
-df1.HARV<-df1.c[125:155,]
-df1.SCBI<-df1.c[156:186,]
-df1.STEI<-df1.c[187:217,]
-df1.UKFS<-df1.c[218:248,]
+#noaa temp data in celsius
+#df1.c<-apply(df1,2,k.to.c)
+df1.c <- lapply(df1,k.to.c)
+
+###now we need to group them by site
+# df1.BART<-df1.c[1:31,]
+# df1.CLBJ<-df1.c[32:62,]
+# df1.DELA<-df1.c[63:93,]
+# df1.GRSM<-df1.c[94:124,]
+# df1.HARV<-df1.c[125:155,]
+# df1.SCBI<-df1.c[156:186,]
+# df1.STEI<-df1.c[187:217,]
+# df1.UKFS<-df1.c[218:248,]
 
 #findmaxtemp<-function(x){
  # return(max(x))
@@ -65,26 +70,20 @@ findmaxtemp<-function(x){
   return(tapply(try, rep(1:16, each=24), max))
 }
 
-#IN OFFICE HOURS WE ENDED UP USING DF1.BART, NOT THESE:
-# temp.max<-matrix(NA,16,8)
-# temp.max[,1]<-findmaxtemp(df1.BART)
-# temp.max[,2]<-findmaxtemp(cel.CLBJ)
-# temp.max[,3]<-findmaxtemp(cel.DELA)
-# temp.max[,4]<-findmaxtemp(cel.GRSM)
-# temp.max[,5]<-findmaxtemp(cel.HARV)
-# temp.max[,6]<-findmaxtemp(cel.SCBI)
-# temp.max[,7]<-findmaxtemp(cel.STEI)
-# temp.max[,8]<-findmaxtemp(cel.UKFS)
-# colnames(temp.max)=siteID
-# 
-# 
-# 
 
 #MUST DO FOR ALL SITES
-temp.max <- matrix(findmaxtemp(df1.BART[1,-1]),ncol=1)  #drops the 1st observation (analysis)
 
-temp.max <- apply(df1.BART[,-1],1,findmaxtemp) #days vs ensemble members
-temp.max.mean<-matrix(apply(temp.max,1,mean),ncol=1)
+#temp.max <- matrix(findmaxtemp(df1.BART[1,-1]),ncol=1)  #drops the 1st observation (analysis)
+
+#temp.max <- apply(df1.c$BART[,-1],1,findmaxtemp) #days vs ensemble members
+#temp.max.mean<-matrix(apply(temp.max,1,mean),ncol=1)
+
+#FINDS MAX TEMP ENSEMBLE MEAN FOR EACH SITE:
+temp.max.mean<-list()
+for (s in siteID){
+  temp.max<-apply(df1.c[[s]][,-1],1,findmaxtemp)
+  temp.max.mean[[s]]<-matrix(apply(temp.max,1,mean),ncol=1)
+}
 
 ## parameters
 params <- as.matrix(j.pheno.out)
@@ -101,9 +100,8 @@ time=1:NT
 
 
 #---------------trying the deterministic---------
-#doing for BART--this does not work!
 PhF.BART<-phenoforecast(IC=IC,
-                      tempcast=temp.max.mean,
+                      tempcast=temp.max.mean$BART,
                       beta=param.mean["betaTemp"],
                       Q=0,
                       n=Nmc,
@@ -112,14 +110,14 @@ PhF.BART<-phenoforecast(IC=IC,
 
 
 
-plot(0,0, xlim=c(0,NT),ylim=range(Ph.det.BART))
+plot(0,0, xlim=c(0,NT),ylim=range(PhF.BART))
 for (p in 1:Nmc){
   points(PhF.BART[p,],type="l",col=p)
 }
 
 #this will make confidence intervals
 time.f<-1:NT
-ci <- apply(as.matrix(PhF.BART.IP),2,quantile,c(0.025,0.5,0.975))
+ci <- apply(as.matrix(PhF.BART),2,quantile,c(0.025,0.5,0.975))
 plot(0,0,xlim=c(0,NT),ylim=range(PhF.BART))
 ecoforecastR::ciEnvelope(time.f,ci[1,],ci[3,],col=col.alpha("lightBlue",0.6))
 
@@ -136,7 +134,7 @@ PhF.BART.IC<-phenoforecast(IC=IC.ens,
 
 time.f<-1:NT
 ci <- apply(as.matrix(PhF.BART.IC),2,quantile,c(0.025,0.5,0.975))
-plot(0,0,xlim=c(0,NT),ylim=range(PhF.BART))
+plot(0,0,xlim=c(0,NT),ylim=range(PhF.BART.IC))
 ecoforecastR::ciEnvelope(time.f,ci[1,],ci[3,],col=col.alpha("lightBlue",0.6))
 
 #-----------------
@@ -151,17 +149,33 @@ PhF.BART.IP<-phenoforecast(IC=IC.ens,
                            gmax=gmax)
 
 ci <- apply(as.matrix(PhF.BART.IP),2,quantile,c(0.025,0.5,0.975))
-plot(0,0,xlim=c(0,NT),ylim=range(PhF.BART))
+plot(0,0,xlim=c(0,NT),ylim=range(PhF.BART.IP))
 ecoforecastR::ciEnvelope(time.f,ci[1,],ci[3,],col=col.alpha("lightBlue",0.6))
 
 
-#---------------
-drow<-sample.int(nrow(df1.BART),Nmc,replace=TRUE)
+#---------------driver uncertainty
+drow<-sample.int(ncol(temp.max),Nmc,replace=TRUE)
 PhF.BART.IPT<-phenoforecast(IC=IC.ens,
-                           tempcast=df1.BART[drow,],  #this is not working
+                           tempcast=temp.max[,drow],  #this is not working
                            beta=params[prow,"betaTemp"],
                            Q=0,
                            n=Nmc,
                            gmin=gmin,
                            gmax=gmax)
+ci <- apply(as.matrix(PhF.BART.IPT),2,quantile,c(0.025,0.5,0.975))
+plot(0,0,xlim=c(0,NT),ylim=range(PhF.BART.IPT))
+ecoforecastR::ciEnvelope(time.f,ci[1,],ci[3,],col=col.alpha("lightBlue",0.6))
+
+#----------------process error
+Qmc <- 1/sqrt(params[prow,"tau_add"])
+PhF.BART.IPTP<-phenoforecast(IC=IC.ens,
+                            tempcast=temp.max[,drow],  #this is not working
+                            beta=params[prow,"betaTemp"],
+                            Q=Qmc,
+                            n=Nmc,
+                            gmin=gmin,
+                            gmax=gmax)
+ci <- apply(as.matrix(PhF.BART.IPTP),2,quantile,c(0.025,0.5,0.975))
+plot(0,0,xlim=c(0,NT),ylim=range(PhF.BART.IPTP))
+ecoforecastR::ciEnvelope(time.f,ci[1,],ci[3,],col=col.alpha("lightBlue",0.6))
 

@@ -63,7 +63,8 @@ for (i in 1:l.siteID){
                z=z,
                mean_temp=0,
                precision_temp=0.00000001)
-  
+  save(data,file=paste0(as.character(siteID[i]),".data.Rdata"))
+}
   #defining initial state of model parameters
   nchain <- 3
   init <- list()
