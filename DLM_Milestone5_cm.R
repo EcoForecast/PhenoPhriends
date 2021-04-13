@@ -63,7 +63,8 @@ for (i in 1:l.siteID){
                z=z,
                mean_temp=0,
                precision_temp=0.00000001)
-  
+  save(data,file=paste0("ForecastDataObject/",as.character(siteID[i]),".data.Rdata"))
+}
   #defining initial state of model parameters
   nchain <- 3
   init <- list()
@@ -123,5 +124,3 @@ for (i in 1:l.siteID){
     ecoforecastR::ciEnvelope(doy,ci[1,sel],ci[3,sel],col="lightBlue")
     points(doy,data$y[i,doy],pch="+",cex=0.5)
   }
-  
-}
