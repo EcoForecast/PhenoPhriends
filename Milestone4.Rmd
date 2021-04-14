@@ -32,5 +32,10 @@ source("daymet.R")
 
 #JAGS model
 source("DLM_Milestone5_cm.R")
+
+#Milestone 6
+source("Milestone6_phenoforecast.R")
+
+#push milestone 4,Milestone 5, milestone 6 after this
 ```
 
