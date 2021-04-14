@@ -61,7 +61,7 @@ df1.c <- lapply(df1,k.to.c)
 # df1.UKFS<-df1.c[218:248,]
 
 #findmaxtemp<-function(x){
- # return(max(x))
+# return(max(x))
 #}
 #BART.temp.test<-tapply(df1.BART,day,max)
 
@@ -79,12 +79,17 @@ findmaxtemp<-function(x){
 #temp.max.mean<-matrix(apply(temp.max,1,mean),ncol=1)
 
 #FINDS MAX TEMP ENSEMBLE MEAN FOR EACH SITE:
+#temp.max.mean<-list()
+#for (s in siteID){
+#  temp.max<-apply(df1.c[[s]][,-1],1,findmaxtemp)
+#  temp.max.mean[[s]]<-matrix(apply(temp.max,1,mean),ncol=1)
+#}
+temp.max<-list()
 temp.max.mean<-list()
 for (s in siteID){
-  temp.max<-apply(df1.c[[s]][,-1],1,findmaxtemp)
-  temp.max.mean[[s]]<-matrix(apply(temp.max,1,mean),ncol=1)
+  temp.max[[s]]<-matrix(apply(df1.c[[s]][,-1],1,findmaxtemp),nrow=NT)
+  temp.max.mean[[s]]<-matrix(apply(temp.max[[s]],1,mean),ncol=1)
 }
-
 ## parameters
 params <- as.matrix(j.pheno.out)
 param.mean <- apply(params,2,mean)
@@ -92,7 +97,7 @@ beta<-param.mean["betaTemp"]
 q<-1/sqrt(param.mean["tau_add"])
 ## initial conditions
 IC <-data$mu_ic  ##we don't have this? START @ END OF GCC TIME SERIES AND ITS UNCERTAINTY(sd) FOR EACH SITE
-  
+
 phiend<-phenoforecast(IC,temp.max,beta,q,Nmc,gmin,gmax)
 #next steps: compute confidence intervals, add in uncertainties 1 by one, do for 35 not 16, then set up for all sites,THEN assess where we're at
 
@@ -101,12 +106,12 @@ time=1:NT
 
 #---------------trying the deterministic---------
 PhF.BART<-phenoforecast(IC=IC,
-                      tempcast=temp.max.mean$BART,
-                      beta=param.mean["betaTemp"],
-                      Q=0,
-                      n=Nmc,
-                      gmin=gmin,
-                      gmax=gmax)
+                        tempcast=temp.max.mean$BART,
+                        beta=param.mean["betaTemp"],
+                        Q=0,
+                        n=Nmc,
+                        gmin=gmin,
+                        gmax=gmax)
 
 
 
@@ -117,65 +122,71 @@ for (p in 1:Nmc){
 
 #this will make confidence intervals
 time.f<-1:NT
-ci <- apply(as.matrix(PhF.BART),2,quantile,c(0.025,0.5,0.975))
+ci.PHF.BART <- apply(as.matrix(PhF.BART),2,quantile,c(0.025,0.5,0.975))
 plot(0,0,xlim=c(0,NT),ylim=range(PhF.BART))
-ecoforecastR::ciEnvelope(time.f,ci[1,],ci[3,],col=col.alpha("lightBlue",0.6))
+ecoforecastR::ciEnvelope(time.f,ci.PHF.BART[1,],ci.PHF.BART[3,],col=col.alpha("lightBlue",0.6))
 
 #-----------------
 #initial condition ensemble created from last gcc observation point & sd
 IC.ens<-rnorm(Nmc,tail(BART$gcc_90,1),tail(BART$gcc_sd,1))
 PhF.BART.IC<-phenoforecast(IC=IC.ens,
-                        tempcast=temp.max.mean,
-                        beta=param.mean["betaTemp"],
-                        Q=0,
-                        n=Nmc,
-                        gmin=gmin,
-                        gmax=gmax)
+                           tempcast=temp.max.mean$BART,
+                           beta=param.mean["betaTemp"],
+                           Q=0,
+                           n=Nmc,
+                           gmin=gmin,
+                           gmax=gmax)
 
 time.f<-1:NT
-ci <- apply(as.matrix(PhF.BART.IC),2,quantile,c(0.025,0.5,0.975))
+ci.PHF.BART.IC <- apply(as.matrix(PhF.BART.IC),2,quantile,c(0.025,0.5,0.975))
 plot(0,0,xlim=c(0,NT),ylim=range(PhF.BART.IC))
-ecoforecastR::ciEnvelope(time.f,ci[1,],ci[3,],col=col.alpha("lightBlue",0.6))
+ecoforecastR::ciEnvelope(time.f,ci.PHF.BART.IC[1,],ci.PHF.BART.IC[3,],col=col.alpha("lightBlue",0.6))
 
 #-----------------
 #parameter uncertainty for beta
 prow <- sample.int(nrow(params),Nmc,replace=TRUE)
 PhF.BART.IP<-phenoforecast(IC=IC.ens,
-                           tempcast=temp.max.mean,
+                           tempcast=temp.max.mean$BART,
                            beta=params[prow,"betaTemp"],
                            Q=0,
                            n=Nmc,
                            gmin=gmin,
                            gmax=gmax)
 
-ci <- apply(as.matrix(PhF.BART.IP),2,quantile,c(0.025,0.5,0.975))
+ci.PhF.BART.IP <- apply(as.matrix(PhF.BART.IP),2,quantile,c(0.025,0.5,0.975))
 plot(0,0,xlim=c(0,NT),ylim=range(PhF.BART.IP))
-ecoforecastR::ciEnvelope(time.f,ci[1,],ci[3,],col=col.alpha("lightBlue",0.6))
+ecoforecastR::ciEnvelope(time.f,ci.PhF.BART.IP[1,],ci.PhF.BART.IP[3,],col=col.alpha("lightBlue",0.6))
 
 
 #---------------driver uncertainty
-drow<-sample.int(ncol(temp.max),Nmc,replace=TRUE)
+drow<-sample.int(ncol(temp.max$BART),Nmc,replace=TRUE)
 PhF.BART.IPT<-phenoforecast(IC=IC.ens,
-                           tempcast=temp.max[,drow],  #this is not working
-                           beta=params[prow,"betaTemp"],
-                           Q=0,
-                           n=Nmc,
-                           gmin=gmin,
-                           gmax=gmax)
-ci <- apply(as.matrix(PhF.BART.IPT),2,quantile,c(0.025,0.5,0.975))
+                            tempcast=temp.max$BART[,drow],  #this is not working
+                            beta=params[prow,"betaTemp"],
+                            Q=0,
+                            n=Nmc,
+                            gmin=gmin,
+                            gmax=gmax)
+ci.PhF.BART.IPT <- apply(as.matrix(PhF.BART.IPT),2,quantile,c(0.025,0.5,0.975))
 plot(0,0,xlim=c(0,NT),ylim=range(PhF.BART.IPT))
-ecoforecastR::ciEnvelope(time.f,ci[1,],ci[3,],col=col.alpha("lightBlue",0.6))
+ecoforecastR::ciEnvelope(time.f,ci.PhF.BART.IPT[1,],ci.PhF.BART.IPT[3,],col=col.alpha("lightBlue",0.6))
 
 #----------------process error
 Qmc <- 1/sqrt(params[prow,"tau_add"])
 PhF.BART.IPTP<-phenoforecast(IC=IC.ens,
-                            tempcast=temp.max[,drow],  #this is not working
-                            beta=params[prow,"betaTemp"],
-                            Q=Qmc,
-                            n=Nmc,
-                            gmin=gmin,
-                            gmax=gmax)
-ci <- apply(as.matrix(PhF.BART.IPTP),2,quantile,c(0.025,0.5,0.975))
+                             tempcast=temp.max$BART[,drow],  #this is not working
+                             beta=params[prow,"betaTemp"],
+                             Q=Qmc,
+                             n=Nmc,
+                             gmin=gmin,
+                             gmax=gmax)
+ci.PhF.BART.IPTP <- apply(as.matrix(PhF.BART.IPTP),2,quantile,c(0.025,0.5,0.975))
 plot(0,0,xlim=c(0,NT),ylim=range(PhF.BART.IPTP))
-ecoforecastR::ciEnvelope(time.f,ci[1,],ci[3,],col=col.alpha("lightBlue",0.6))
+ecoforecastR::ciEnvelope(time.f,ci.PhF.BART.IPTP[1,],ci.PhF.BART.IPTP[3,],col=col.alpha("lightBlue",0.6))
 
+plot(0,0,xlim=c(0,NT),ylim=range(PhF.BART.IPTP))
+ecoforecastR::ciEnvelope(time.f,ci.PhF.BART.IPTP[1,],ci.PhF.BART.IPTP[3,],col=col.alpha("lightBlue",0.6))
+ecoforecastR::ciEnvelope(time.f,ci.PhF.BART.IP[1,],ci.PhF.BART.IP[3,],col=col.alpha("green",0.6))
+ecoforecastR::ciEnvelope(time.f,ci.PhF.BART.IPT[1,],ci.PhF.BART.IPT[3,],col=col.alpha("thistle3",0.6))
+ecoforecastR::ciEnvelope(time.f,ci.PHF.BART.IC[1,],ci.PHF.BART.IC[3,],col=col.alpha("red2",0.6))
+#ecoforecastR::ciEnvelope(time.f,ci.PhF.BART[1,],ci.PhF.BART[3,],col=col.alpha("thistle3"))

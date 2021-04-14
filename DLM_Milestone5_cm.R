@@ -27,7 +27,7 @@ for(i in 1:years){
 
 #siteID= c('BART','CLBJ')
 siteID= c('BART','CLBJ','DELA','GRSM','HARV','SCBI','STEI','UKFS')
- 
+
 l.siteID = length(siteID)
 
 #i know it doesnt make sense but if I don't have this line here, it doesn't run 
@@ -63,64 +63,66 @@ for (i in 1:l.siteID){
                z=z,
                mean_temp=0,
                precision_temp=0.00000001)
+  #save data object for each site:
   save(data,file=paste0("ForecastDataObject/",as.character(siteID[i]),".data.Rdata"))
 }
-  #defining initial state of model parameters
-  nchain <- 3
-  init <- list()
-  for(i in 1:nchain){
-    ## set initial X to the average year
-    init[[i]] <- list (x=matrix(apply(y[,1:180],2,mean,na.rm=TRUE),
-                                nrow=nrow(z),ncol = 180,byrow = TRUE))
+
+#defining initial state of model parameters
+nchain <- 3
+init <- list()
+for(i in 1:nchain){
+  ## set initial X to the average year
+  init[[i]] <- list (x=matrix(apply(y[,1:180],2,mean,na.rm=TRUE),
+                              nrow=nrow(z),ncol = 180,byrow = TRUE))
+}
+
+## compile
+j.pheno.model.test <- rjags::jags.model (file = textConnection(cat),
+                                         data = data,
+                                         inits = init,
+                                         n.chains = 3)
+## check burn-in
+j.pheno.out <- rjags::coda.samples (model = j.pheno.model.test,
+                                    variable.names = c("tau_add","tau_gcc","betaTemp"),
+                                    n.iter = 5000)    
+plot(j.pheno.out)
+coda::gelman.diag(j.pheno.out)
+coda::effectiveSize(j.pheno.out)
+
+## sample posterior
+j.pheno.out <- rjags::coda.samples (model = j.pheno.model.test,
+                                    variable.names = c("tau_add","tau_gcc","x","betaTemp"),
+                                    n.iter = 5000)    #FOR ACTUAL RUN LETS CHANGE IT TO >5000
+filename=paste0(siteID[i],'.Rdata')
+save(j.pheno.out,file=filename)
+
+#### Helper function to parse JAGS variable names that include matrix syntax (e.g. "x[40,13]")
+##' @param w mcmc object containing matrix outputs
+##' @param pre prefix (variable name) for the matrix variable to be extracted
+##' @param numeric boolean, whether to coerce class to numeric
+parse.MatrixNames <- function(w, pre = "x", numeric = FALSE) {
+  w <- sub(pre, "", w)
+  w <- sub("[", "", w, fixed = TRUE)
+  w <- sub("]", "", w, fixed = TRUE)
+  w <- matrix(unlist(strsplit(w, ",")), nrow = length(w), byrow = TRUE)
+  if (numeric) {
+    class(w) <- "numeric"
   }
-  
-  ## compile
-  j.pheno.model.test <- rjags::jags.model (file = textConnection(cat),
-                                           data = data,
-                                           inits = init,
-                                           n.chains = 3)
-  ## check burn-in
-  j.pheno.out <- rjags::coda.samples (model = j.pheno.model.test,
-                                      variable.names = c("tau_add","tau_gcc","betaTemp"),
-                                      n.iter = 5000)    
-  plot(j.pheno.out)
-  coda::gelman.diag(j.pheno.out)
-  coda::effectiveSize(j.pheno.out)
-  
-  ## sample posterior
-  j.pheno.out <- rjags::coda.samples (model = j.pheno.model.test,
-                                      variable.names = c("tau_add","tau_gcc","x","betaTemp"),
-                                      n.iter = 5000)    #FOR ACTUAL RUN LETS CHANGE IT TO >5000
-  filename=paste0(siteID[i],'.Rdata')
-  save(j.pheno.out,file=filename)
-  
-  #### Helper function to parse JAGS variable names that include matrix syntax (e.g. "x[40,13]")
-  ##' @param w mcmc object containing matrix outputs
-  ##' @param pre prefix (variable name) for the matrix variable to be extracted
-  ##' @param numeric boolean, whether to coerce class to numeric
-  parse.MatrixNames <- function(w, pre = "x", numeric = FALSE) {
-    w <- sub(pre, "", w)
-    w <- sub("[", "", w, fixed = TRUE)
-    w <- sub("]", "", w, fixed = TRUE)
-    w <- matrix(unlist(strsplit(w, ",")), nrow = length(w), byrow = TRUE)
-    if (numeric) {
-      class(w) <- "numeric"
-    }
-    colnames(w) <- c("row", "col")
-    return(as.data.frame(w))
-  } # parse.MatrixNames
-  
-  ## calculate CI of X's
-  out <- as.matrix(j.pheno.out)
-  xf <- grep("^x",colnames(out))
-  ci <- apply((out[,xf]),2,quantile,c(0.025,0.5,0.975))
-  ci.names = parse.MatrixNames(colnames(ci),numeric=TRUE)
-  doy = 1:180
-  
-  ## plot each year
-  for(i in seq_len(nrow(y))){
-    sel = which(ci.names$row == i)
-    plot(doy,ci[2,sel],type='n',ylim=range(ci[,sel],na.rm=TRUE),ylab="gcc",main=years[i])
-    ecoforecastR::ciEnvelope(doy,ci[1,sel],ci[3,sel],col="lightBlue")
-    points(doy,data$y[i,doy],pch="+",cex=0.5)
-  }
+  colnames(w) <- c("row", "col")
+  return(as.data.frame(w))
+} # parse.MatrixNames
+
+## calculate CI of X's
+out <- as.matrix(j.pheno.out)
+xf <- grep("^x",colnames(out))
+ci <- apply((out[,xf]),2,quantile,c(0.025,0.5,0.975))
+ci.names = parse.MatrixNames(colnames(ci),numeric=TRUE)
+doy = 1:180
+
+## plot each year
+for(i in seq_len(nrow(y))){
+  sel = which(ci.names$row == i)
+  plot(doy,ci[2,sel],type='n',ylim=range(ci[,sel],na.rm=TRUE),ylab="gcc",main=years[i])
+  ecoforecastR::ciEnvelope(doy,ci[1,sel],ci[3,sel],col="lightBlue")
+  points(doy,data$y[i,doy],pch="+",cex=0.5)
+}
