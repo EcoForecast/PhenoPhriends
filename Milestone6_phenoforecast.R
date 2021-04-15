@@ -18,10 +18,29 @@ NT=16
 Nmc=10
 
 
-#we set gcc min and max values, they are different for each run/site and they are here:
-load(file=paste0(as.character(siteID[i]),".data.Rdata"))
-gmin=data$gmin
-gmax=data$gmax
+# #we set gcc min and max values, they are different for each run/site and they are here:
+# load(file=paste0(as.character(siteID[i]),".data.Rdata"))
+# gmin=data$gmin
+# gmax=data$gmax
+
+#load gcc data into list:
+site.gcc<-list()
+  site.gcc$BART<-BART
+  site.gcc$CLBJ<-CLBJ
+  site.gcc$DELA<-DELA
+  site.gcc$GRSM<-GRSM
+  site.gcc$HARV<-HARV
+  site.gcc$SCBI<-SCBI
+  site.gcc$STEI<-STEI
+  site.gcc$UKFS<-UKFS
+
+#getting all IC's for each site:
+IC.ens<-list()
+for (s in siteID){
+   IC.ens[[s]]<-rnorm(Nmc,tail(site.gcc[[s]]$gcc_90,1),tail(site.gcc[[s]]$gcc_sd,1))
+}
+
+  
 
 
 #FORECAST FUNCTION
@@ -84,12 +103,14 @@ findmaxtemp<-function(x){
 #  temp.max<-apply(df1.c[[s]][,-1],1,findmaxtemp)
 #  temp.max.mean[[s]]<-matrix(apply(temp.max,1,mean),ncol=1)
 #}
+
 temp.max<-list()
 temp.max.mean<-list()
 for (s in siteID){
   temp.max[[s]]<-matrix(apply(df1.c[[s]][,-1],1,findmaxtemp),nrow=NT)
   temp.max.mean[[s]]<-matrix(apply(temp.max[[s]],1,mean),ncol=1)
 }
+
 ## parameters
 params <- as.matrix(j.pheno.out)
 param.mean <- apply(params,2,mean)

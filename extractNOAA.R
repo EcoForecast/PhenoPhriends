@@ -36,4 +36,4 @@ df1[[s]] <-as.data.frame(matrix(nrow=l.files,ncol=385))
 #df1[[s]]=na.omit(df1[[s]])
 }
 
-names(df1)#=siteID
+names(df1)=siteID
