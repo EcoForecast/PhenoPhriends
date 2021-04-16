@@ -29,6 +29,7 @@ for(i in 1:years){
 siteID= c('BART','CLBJ','DELA','GRSM','HARV','SCBI','STEI','UKFS')
 
 l.siteID = length(siteID)
+site.data<-list()
 
 #i know it doesnt make sense but if I don't have this line here, it doesn't run 
 i=1
@@ -65,10 +66,8 @@ for (i in 1:l.siteID){
                precision_temp=0.00000001)
   
   #save data object for each site in a list to call on later:
-  site.data<-list()
-  for (s in siteID){
-    site.data[[s]]<-data
-  }
+  site.data[[i]]<-list(data)
+  
   #save(data,file=paste0("ForecastDataObject/",as.character(siteID[i]),".data.Rdata"))
 }
 
