@@ -125,6 +125,32 @@ phiend<-phenoforecast(IC,temp.max,beta,q,Nmc,gmin,gmax)
 time=1:NT
 
 
+#------THE FORECAST LOOP----------
+
+site.pheno<-list()
+#forecast loop
+for (s in siteID){
+  #uncertainties for each forecast
+  prow<-sample.int(nrow(params),Nmc,replace=TRUE)
+  Qmc<-1/sqrt(params[prow,"tau_add"])
+  drow<-sample.int(ncol(temp.max[[s]]),Nmc,replace=TRUE)
+  
+  #forecast step
+  site.pheno[[s]]<-phenoforecast(IC=IC.ens[[s]],
+                                 tempcast=temp.max[[s]][,drow],
+                                 beta=params[prow,"betaTemp"],
+                                 Q=Qmc,
+                                 n=Nmc,
+                                 gmin=min(site.gcc[[s]]$gcc_90,na.rm=T),
+                                 gmax=max(site.gcc[[s]]$gcc_90,na.rm=T))
+}
+
+##end forecast loop
+#next steps: plotting each site with confidence intervals
+
+
+##EVERYTHING BELOW THIS LINE IS OUR BART FORECAST PRACTICE
+##########################################################
 #---------------trying the deterministic---------
 PhF.BART<-phenoforecast(IC=IC,
                         tempcast=temp.max.mean$BART,
