@@ -15,7 +15,7 @@ library(ecoforecastR)
 #the timestep is 16 days:
 NT=16
 #the number of ensemble members is 10:
-Nmc=10
+Nmc=1000
 
 
 # #we set gcc min and max values, they are different for each run/site and they are here:
@@ -119,7 +119,7 @@ q<-1/sqrt(param.mean["tau_add"])
 ## initial conditions
 IC <-data$mu_ic  ##we don't have this? START @ END OF GCC TIME SERIES AND ITS UNCERTAINTY(sd) FOR EACH SITE
 
-phiend<-phenoforecast(IC,temp.max,beta,q,Nmc,gmin,gmax)
+#phiend<-phenoforecast(IC,temp.max,beta,q,Nmc,gmin,gmax)
 #next steps: compute confidence intervals, add in uncertainties 1 by one, do for 35 not 16, then set up for all sites,THEN assess where we're at
 
 time=1:NT
@@ -152,6 +152,7 @@ for (s in siteID){
 ##EVERYTHING BELOW THIS LINE IS OUR BART FORECAST PRACTICE
 ##########################################################
 #---------------trying the deterministic---------
+if(FALSE){
 PhF.BART<-phenoforecast(IC=IC,
                         tempcast=temp.max.mean$BART,
                         beta=param.mean["betaTemp"],
@@ -237,3 +238,4 @@ ecoforecastR::ciEnvelope(time.f,ci.PhF.BART.IP[1,],ci.PhF.BART.IP[3,],col=col.al
 ecoforecastR::ciEnvelope(time.f,ci.PhF.BART.IPT[1,],ci.PhF.BART.IPT[3,],col=col.alpha("thistle3",0.6))
 ecoforecastR::ciEnvelope(time.f,ci.PHF.BART.IC[1,],ci.PHF.BART.IC[3,],col=col.alpha("red2",0.6))
 #ecoforecastR::ciEnvelope(time.f,ci.PhF.BART[1,],ci.PhF.BART[3,],col=col.alpha("thistle3"))
+}

@@ -124,9 +124,9 @@ ci.names = parse.MatrixNames(colnames(ci),numeric=TRUE)
 doy = 1:180
 
 ## plot each year
-for(i in seq_len(nrow(y))){
-  sel = which(ci.names$row == i)
-  plot(doy,ci[2,sel],type='n',ylim=range(ci[,sel],na.rm=TRUE),ylab="gcc",main=years[i])
-  ecoforecastR::ciEnvelope(doy,ci[1,sel],ci[3,sel],col="lightBlue")
-  points(doy,data$y[i,doy],pch="+",cex=0.5)
-}
+##for(i in seq_len(nrow(y))){
+  ##sel = which(ci.names$row == i)
+ ## plot(doy,ci[2,sel],type='n',ylim=range(ci[,sel],na.rm=TRUE),ylab="gcc",main=years[i])
+  ##ecoforecastR::ciEnvelope(doy,ci[1,sel],ci[3,sel],col="lightBlue")
+ ## points(doy,data$y[i,doy],pch="+",cex=0.5)
+#}
