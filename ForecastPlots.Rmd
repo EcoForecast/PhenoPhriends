@@ -1,0 +1,26 @@
+---
+title: "Untitled"
+author: "Devin Hubbard"
+date: "4/23/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+colors = c("lightBlue", "thistle", "Chartreuse", "hotpink", "goldenrod", "red3", "aquamarine", "black")
+```
+
+
+```{r}
+for (s in siteID){
+  plot(0,0, xlim=c(0,NT),ylim=range(site.pheno), main = s, xlab = "Time (in days)", ylab = "gcc")
+  ci<-apply(as.matrix(site.pheno[[s]]),2,quantile,c(0.025,0.5,0.975))
+  ecoforecastR::ciEnvelope(time.f,ci[1,],ci[3,],col=col.alpha("Chartreuse",0.6))
+
+}
+```
+
