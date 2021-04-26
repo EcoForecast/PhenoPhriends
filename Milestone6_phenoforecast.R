@@ -134,7 +134,7 @@ for (s in siteID){
   prow<-sample.int(nrow(params),Nmc,replace=TRUE)
   Qmc<-1/sqrt(params[prow,"tau_add"])
   drow<-sample.int(ncol(temp.max[[s]]),Nmc,replace=TRUE)
-  
+    
   #forecast step
   site.pheno[[s]]<-phenoforecast(IC=IC.ens[[s]],
                                  tempcast=temp.max[[s]][,drow],
@@ -143,7 +143,16 @@ for (s in siteID){
                                  n=Nmc,
                                  gmin=min(site.gcc[[s]]$gcc_90,na.rm=T),
                                  gmax=max(site.gcc[[s]]$gcc_90,na.rm=T))
+  
 }
+
+#tempcast list:
+tempcast.l<-list()
+tempcast.l[[s]]<-list()
+for (s in siteID){
+  tempcast.l[[s]][[1]]<-temp.max[[s]][,drow]
+}
+
 
 ##end forecast loop
 #next steps: plotting each site with confidence intervals
@@ -239,3 +248,4 @@ ecoforecastR::ciEnvelope(time.f,ci.PhF.BART.IPT[1,],ci.PhF.BART.IPT[3,],col=col.
 ecoforecastR::ciEnvelope(time.f,ci.PHF.BART.IC[1,],ci.PHF.BART.IC[3,],col=col.alpha("red2",0.6))
 #ecoforecastR::ciEnvelope(time.f,ci.PhF.BART[1,],ci.PhF.BART[3,],col=col.alpha("thistle3"))
 }
+
