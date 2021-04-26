@@ -10,7 +10,7 @@
 ##' @return list
 ##'  mu  = state mean vector for (a)nalysis and (f)orecast steps
 ##'  P    = state covariance matrix for a and f
-KalmanFilter2 <- function(M,mu0,P0,Q,R,Y){
+KalmanFilter2 <- function(mu0,P0,Q,R,Y,tempcast,beta,gmin,gmax){
   
   ## storage
   nstates = 1
@@ -29,20 +29,12 @@ KalmanFilter2 <- function(M,mu0,P0,Q,R,Y){
   P[,,1] <- KA$P
   
   ## run updates sequentially for each observation.
-
+  IC.ensKF<-rnorm(Nmc, mu[,1], sqrt(P[,,1]))
     
-    IC.ensKF<-list()
-    for (s in siteID){
-      IC.ensKF[[s]]<-rnorm(Nmc, mu[,1], sqrt(P[,,1]))
-    }
-    
-    ## Forecast step: predict to next step from current
-    KF <- phenoforecast(IC.ensKF,tempcast,beta,Q,n=Nmc,gmin,gmax)
-    mu[,t+1] <- KF$mu
-    P[,,t+1] <- KF$P
-
+  ## Forecast step: predict to next step from current
+  KF <- phenoforecast(IC.ensKF,tempcast,beta,Q,n=Nmc,gmin,gmax)
   
-  return(list(mu=mu,P=P))
+  return(cbind(IC.ensKF,KF))
 }
 
 ##' Kalman Filter: Analysis step
@@ -70,60 +62,76 @@ KalmanAnalysis <- function(mu.f,P.f,Y,R,H,I){
   return(list(mu.a=mu.a,P.a=P.a))
 }
 
-##' Kalman Filter: Forecast Step
-##' @param mu.a = analysis posterior mean (vector)
-##' @param P.a  = analysis posterior covariance (matrix)
-##' @param M    = model (matrix)
-##' @param  Q   = process error covariance (matrix)
-KalmanForecast <- function(mu.a,P.a,M,Q){
-  mu.f = M%*%mu.a
-  P.f  = Q + M%*%P.a%*%t(M)
-  return(list(mu.f=mu.f,P.f=P.f))
+
+nstates=1
+
+## parameters
+params <- as.matrix(j.pheno.out)
+param.mean <- apply(params,2,mean)
+beta<-param.mean["betaTemp"]
+q<-1/sqrt(param.mean["tau_add"])
+
+#getting all IC's for each site:
+start.date = "2021-04-15"
+IC.ens<-list()
+for (s in siteID){
+  doy = which(site.gcc[[s]]$time == start.date)
+  IC.ens[[s]]<-rnorm(Nmc,site.gcc[[s]]$gcc_90[doy],site.gcc[[s]]$gcc_sd[doy])
 }
 
-y = site.pheno$BART
+s="BART"
+ENKFlist<-list()
 
-adj = matrix(c(0,1,1,1,1,0,    ### state-to-state spatial adjacency (self=0)
-               1,0,1,0,0,0,
-               1,1,0,0,0,0,
-               1,0,0,0,1,1,
-               1,0,0,1,0,0,
-               0,0,0,1,0,0),nstates,nstates,byrow=TRUE)
-
-##IRRELEVANT FROM HERE DOWN
-##```{r}
-## log transform data
-Y   = log10(y)
-
-## options for process model 
-#alpha = 0        ## assume no spatial flux
-alpha = 0.05    ## assume a large spatial flux
-M = adj*alpha + diag(1-alpha*apply(adj,1,sum))  ## random walk with flux
-
-## options for process error covariance
-Q = tau_proc            ## full process error covariance matrix
-#Q = diag(diag(tau_proc))        ## diagonal process error matrix
-
-## observation error covariance (assumed independent)  
-R = diag(tau_obs,nstates) 
-
-## prior on first step, initialize with long-term mean and covariance
-mu0 = apply(Y,1,mean,na.rm=TRUE)
-P0 = cov(t(Y),use="pairwise.complete.obs")
-#w <- P0*0+0.25 + diag(0.75,dim(P0)) ## iptional: downweight covariances in IC
-#P0 = P0*w 
+#for (s in siteID){
+  #uncertainties for each forecast
+  Y = site.gcc[[s]]$gcc_90[doy]  ## note: are double dipping on IC and first Y
+  nstates=1
+  
+  ## initial conditions
+  doy = which(site.gcc[[s]]$time == start.date)
+  mu0 = site.gcc[[s]]$gcc_90[doy]
+  P0 = (site.gcc[[s]]$gcc_sd[doy])^2 ## squared to make a variance
+    
+  
+  ## parameters
+  params <- as.matrix(j.pheno.out)
+  prow<-sample.int(nrow(params),Nmc,replace=TRUE)
+  beta=params[prow,"betaTemp"]
+  Q <- as.matrix(1/sqrt(params[prow,"tau_add"]))
+  R = as.matrix((site.gcc[[s]]$gcc_sd[doy])^2)  ## square to variance
+  gmin=min(site.gcc[[s]]$gcc_90,na.rm=T)
+  gmax=max(site.gcc[[s]]$gcc_90,na.rm=T)
+  
+  ## met
+  drow<-sample.int(ncol(temp.max[[s]]),Nmc,replace=TRUE)
+    
 
 ###RELEVANT AGAIN
 
-task5list<-list()
-
 ## Run Kalman Filter
-task5list[[1]] = KalmanFilter2(M,mu0,P0,Q,R,Y[,1])
+  ENKFlist[[s]] <- list()
+  ENKFlist[[s]][[1]] = KalmanFilter2(mu0 = mu0,
+                               P0 = P0,
+                               Q = Q,
+                               R = R,
+                               Y = Y,
+                               tempcast = temp.max[[s]][,drow],
+                               beta = beta,
+                               gmin = gmin,
+                               gmax = gmax)
 
 for(t in 2:5){
+  fx =  ENKFlist[[s]][[t-1]][,2]
   
-  task5list[[t]]= KalmanFilter2(M,task5list[[t-1]]$mu[,2],task5list[[t-1]]$P[,,2],Q,R,Y[,t])
-  
+  ENKFlist[[s]][[t]]= KalmanFilter2(mu0=mean(fx),
+                                    P0 = var(fx),
+                                    Q = Q,
+                                    R = as.matrix((site.gcc[[s]]$gcc_sd[doy+t-1])^2),
+                                    Y = site.gcc[[s]]$gcc_90[doy+t-1],
+                                    tempcast = temp.max[[s]][,drow],  ### need to fix
+                                    beta = beta,
+                                    gmin=gmin,
+                                    gmax=gmax)
 }
 
 ### plot ANALYSIS mean & CI time-series
@@ -143,3 +151,4 @@ for(i in 1:6){
   }
   lines(time,Y[i,1:17])
 }
+#}
