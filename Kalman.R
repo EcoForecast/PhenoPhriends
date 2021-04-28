@@ -13,23 +13,16 @@
 KalmanFilter2 <- function(mu0,P0,Q,R,Y,tempcast,beta,gmin,gmax){
   
   ## storage
-  nstates = 1
   nt = 16
-  mu  = matrix(NA,nstates,nt+1)  ## forecast mean for time t
-  #mu.a  = matrix(NA,nstates,nt)  ## analysis mean for time t
-  P  = array(NA,c(nstates,nstates,nt+1))  ## forecast variance for time t
-  #P.a  = array(NA,c(nstates,nstates,nt))  ## analysis variance for time t
   
   ## initialization
-  I = diag(1,nstates)
+  I = diag(1,1)
   
   ## Analysis step: combine previous forecast with observed data
   KA <- KalmanAnalysis(mu0,P0,Y,R,H=I,I)
-  mu[,1] <- KA$mu
-  P[,,1] <- KA$P
   
   ## run updates sequentially for each observation.
-  IC.ensKF<-rnorm(Nmc, mu[,1], sqrt(P[,,1]))
+  IC.ensKF<-rnorm(Nmc, KA$mu, sqrt(KA$P))
     
   ## Forecast step: predict to next step from current
   KF <- phenoforecast(IC.ensKF,tempcast,beta,Q,n=Nmc,gmin,gmax)
@@ -63,13 +56,6 @@ KalmanAnalysis <- function(mu.f,P.f,Y,R,H,I){
 }
 
 
-nstates=1
-
-## parameters
-params <- as.matrix(j.pheno.out)
-param.mean <- apply(params,2,mean)
-beta<-param.mean["betaTemp"]
-q<-1/sqrt(param.mean["tau_add"])
 
 #getting all IC's for each site:
 start.date = "2021-04-15"
@@ -85,7 +71,6 @@ ENKFlist<-list()
 #for (s in siteID){
   #uncertainties for each forecast
   Y = site.gcc[[s]]$gcc_90[doy]  ## note: are double dipping on IC and first Y
-  nstates=1
   
   ## initial conditions
   doy = which(site.gcc[[s]]$time == start.date)
@@ -94,6 +79,7 @@ ENKFlist<-list()
     
   
   ## parameters
+  load(paste0("MCMC/",s,".Rdata"))
   params <- as.matrix(j.pheno.out)
   prow<-sample.int(nrow(params),Nmc,replace=TRUE)
   beta=params[prow,"betaTemp"]
@@ -121,7 +107,7 @@ ENKFlist<-list()
                                gmax = gmax)
 
 for(t in 2:5){
-  fx =  ENKFlist[[s]][[t-1]][,2]
+  fx =  ENKFlist[[s]][[t-1]][,2] #last forecast we made of "today"
   
   ENKFlist[[s]][[t]]= KalmanFilter2(mu0=mean(fx),
                                     P0 = var(fx),
