@@ -1,0 +1,24 @@
+---
+title: "Final"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+#PhenoCam Data Download:
+source("download.R")
+
+#NOAA Data Download:
+source("NOAAdownload.R")
+
+#extract NOAA Data
+source("extractNOAA.R")
+
+#Plot time series for gcc_90 at each site
+source("TS_Plots.R")
+
+#run the forecast
+source("Milestone6_phenoforecast.R")
+
+#supply the Kalman filter
+source("Kalman.R")
+```
