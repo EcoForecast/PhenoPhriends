@@ -112,12 +112,8 @@ for (s in siteID){
 }
 
 ## parameters
-params <- as.matrix(j.pheno.out)
-param.mean <- apply(params,2,mean)
-beta<-param.mean["betaTemp"]
-q<-1/sqrt(param.mean["tau_add"])
 ## initial conditions
-IC <-data$mu_ic  ##we don't have this? START @ END OF GCC TIME SERIES AND ITS UNCERTAINTY(sd) FOR EACH SITE
+#IC <-data$mu_ic  ##we don't have this? START @ END OF GCC TIME SERIES AND ITS UNCERTAINTY(sd) FOR EACH SITE
 
 #phiend<-phenoforecast(IC,temp.max,beta,q,Nmc,gmin,gmax)
 #next steps: compute confidence intervals, add in uncertainties 1 by one, do for 35 not 16, then set up for all sites,THEN assess where we're at
@@ -130,6 +126,12 @@ time=1:NT
 site.pheno<-list()
 #forecast loop
 for (s in siteID){
+  load(paste0("MCMC/",s,".Rdata"))
+  params<-as.matrix(j.pheno.out)
+  param.mean <- apply(params,2,mean)
+  beta<-param.mean["betaTemp"]
+  q<-1/sqrt(param.mean["tau_add"])
+  
   #uncertainties for each forecast
   prow<-sample.int(nrow(params),Nmc,replace=TRUE)
   Qmc<-1/sqrt(params[prow,"tau_add"])
