@@ -112,7 +112,7 @@ for (s in siteID){
                                gmax = gmax)
 
   
-for(t in 2:5){
+for(t in 2:16){
   fx =  ENKFlist[[s]][[t-1]][,2] #last forecast we made of "today"
   
   ENKFlist[[s]][[t]]= KalmanFilter2(mu0=mean(fx),
@@ -130,12 +130,12 @@ for(t in 2:5){
 ### plot ANALYSIS mean & CI time-series
 for(s in siteID){
   if (is.null(ENKFlist[[s]])) next
-  for(t in 1:5){
+  for(t in 1:16){
     #this will make confidence intervals
     time.f<-1:(NT+1)
     ci <- apply(as.matrix(ENKFlist[[s]][[t]]),2,quantile,c(0.025,0.5,0.975))
     if(t == 1){
-      plot(time.f,ci[2,],ylim=range(ci,na.rm=TRUE),type='n',main=s)
+      plot(time.f,ci[2,],ylim=range(ci,na.rm=TRUE),type='n',main=s,ylab="GCC",xlab="Time (days)")
     }
     ecoforecastR::ciEnvelope(time.f+t-1,ci[1,],ci[3,],col=t)
     lines(time.f+t-1,ci[2,],col="chartreuse")
