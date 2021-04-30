@@ -22,7 +22,7 @@ KalmanFilter2 <- function(mu0,P0,Q,R,Y,tempcast,beta,gmin,gmax){
   KA <- KalmanAnalysis(mu0,P0,Y,R,H=I,I)
   
   ## run updates sequentially for each observation.
-  IC.ensKF<-rnorm(Nmc, KA$mu, sqrt(KA$P))
+  IC.ensKF<-rnorm(Nmc, KA$mu.a, sqrt(KA$P.a))
     
   ## Forecast step: predict to next step from current
   KF <- phenoforecast(IC.ensKF,tempcast,beta,Q,n=Nmc,gmin,gmax)
@@ -65,10 +65,10 @@ for (s in siteID){
   IC.ens[[s]]<-rnorm(Nmc,site.gcc[[s]]$gcc_90[doy],site.gcc[[s]]$gcc_sd[doy])
 }
 
-s="BART"
+#s="BART"
 ENKFlist<-list()
 
-#for (s in siteID){
+for (s in siteID){
   #uncertainties for each forecast
   Y = site.gcc[[s]]$gcc_90[doy]  ## note: are double dipping on IC and first Y
   
@@ -79,7 +79,13 @@ ENKFlist<-list()
     
   
   ## parameters
+  fname<-paste0("MCMC/",s,".Rdata")
+  if (file.exists(fname)){
   load(paste0("MCMC/",s,".Rdata"))
+  }
+  else {
+    next
+  }
   params <- as.matrix(j.pheno.out)
   prow<-sample.int(nrow(params),Nmc,replace=TRUE)
   beta=params[prow,"betaTemp"]
@@ -87,7 +93,6 @@ ENKFlist<-list()
   R = as.matrix((site.gcc[[s]]$gcc_sd[doy])^2)  ## square to variance
   gmin=min(site.gcc[[s]]$gcc_90,na.rm=T)
   gmax=max(site.gcc[[s]]$gcc_90,na.rm=T)
-  
   ## met
   drow<-sample.int(ncol(temp.max[[s]]),Nmc,replace=TRUE)
     
@@ -106,6 +111,7 @@ ENKFlist<-list()
                                gmin = gmin,
                                gmax = gmax)
 
+  
 for(t in 2:5){
   fx =  ENKFlist[[s]][[t-1]][,2] #last forecast we made of "today"
   
@@ -118,23 +124,23 @@ for(t in 2:5){
                                     beta = beta,
                                     gmin=gmin,
                                     gmax=gmax)
-}
+  } #loop over time
+} # loop over sites
 
 ### plot ANALYSIS mean & CI time-series
-par(mfrow=c(3,1))
-for(i in 1:6){
+for(s in siteID){
+  if (is.null(ENKFlist[[s]])) next
   for(t in 1:5){
-    mu=task5list[[t]]$mu
-    P = task5list[[t]]$P
-    nt = ncol(mu)
-    time=1:nt -1
-    ci = rbind(mu[i,]-1.96*sqrt(P[i,i,]),mu[i,]+1.96*sqrt(P[i,i,])) ##calculate ci from ensemble QUANTILES
+    #this will make confidence intervals
+    time.f<-1:(NT+1)
+    ci <- apply(as.matrix(ENKFlist[[s]][[t]]),2,quantile,c(0.025,0.5,0.975))
     if(t == 1){
-      plot(time,mu[i,],ylim=range(ci,na.rm=TRUE),type='n',main=states[i])
+      plot(time.f,ci[2,],ylim=range(ci,na.rm=TRUE),type='n',main=s)
     }
-    ecoforecastR::ciEnvelope(time+t,ci[1,],ci[2,],col=t)
-    lines(time+t,mu[i,],col=34)
+    ecoforecastR::ciEnvelope(time.f+t-1,ci[1,],ci[3,],col=t)
+    lines(time.f+t-1,ci[2,],col="chartreuse")
   }
-  lines(time,Y[i,1:17])
+  Y = site.gcc[[s]]$gcc_90[doy+1:(NT+1)-1]
+  points(time.f,Y, col= "purple")
 }
-#}
+
